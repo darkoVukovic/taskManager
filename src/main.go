@@ -27,23 +27,31 @@ func main() {
     }
     currentDate := time.Now().In(belgradeLocation).Format("02-01-2006");
     fmt.Println("current date in belgrade is: ", currentDate);
-    // IF selected to create new task 
+
     for {
         fmt.Println("to create new task press t || to view all tasks press v || to exit press e");
         var input string;
+        const file string =  "tasks.json";
         fmt.Scanln(&input);
         switch input {
-
+    // IF selected to create new task 
         case "t": 
             var id uint = 0;
             var name string;
             var task string;
             var status uint8 = 0;
             // read file first 
-            fileContent, err := os.ReadFile("tasks.json");
+            fileContent, err := os.ReadFile(file);
             if err != nil {
                 if os.IsNotExist(err) {
                     fmt.Println("file does not exist. Creating new file ");
+                    fileContent, createErr := os.Create(file);
+                    if createErr != nil {
+                        fmt.Println("error creating file", createErr);
+                        return;
+                    }
+                    defer fileContent.Close();
+                    
                 } else {
                     fmt.Println("error loading file ", err);
                     return;
@@ -51,11 +59,15 @@ func main() {
             }
             
             var person []Person;
-            err = json.Unmarshal(fileContent, &person);
-            if err != nil {
-                fmt.Println("Error unmarshaling  file", err);
-                return;
+            
+            if(len(fileContent) > 0) {
+                err = json.Unmarshal(fileContent, &person);
+                if err != nil {
+                    fmt.Println("Error unmarshaling  file", err);
+                    return;
+                }
             }
+      
             
             if len(person) > 0 {
                 lastTask := person[len(person) - 1];
@@ -84,12 +96,13 @@ func main() {
                 return;
             }
     
-            _ = os.WriteFile("tasks.json", jsonData, os.ModePerm);
+            _ = os.WriteFile(file, jsonData, os.ModePerm);
 
-
+        // display all tasks 
+        // TODO display tasks for specicc user 
         case "v":
             fmt.Println("all tasks ");
-            fileContent, err := os.ReadFile("tasks.json");
+            fileContent, err := os.ReadFile(file);
             if err != nil {
                 fmt.Println("Error loading file", err);
                 return;
