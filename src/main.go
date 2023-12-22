@@ -27,9 +27,9 @@ func main() {
     }
     currentDate := time.Now().In(belgradeLocation).Format("02-01-2006");
     fmt.Println("current date in belgrade is: ", currentDate);
-
+    // TODO updates and deletions(loading file once on top or on every case ??) apply DRY later
     for {
-        fmt.Println("to create new task press t || to view all tasks press v || to exit press e");
+        fmt.Println("to create new task press t || to view all tasks press v || to delete task press d || press u to update task ||  to exit press e");
         var input string;
         const file string =  "tasks.json";
         fmt.Scanln(&input);
@@ -99,29 +99,31 @@ func main() {
             _ = os.WriteFile(file, jsonData, os.ModePerm);
 
         // display all tasks 
-        // TODO display tasks for specicc user 
+        // TODO display tasks for specicc user(finished)
         case "v":
-            fmt.Println("all tasks ");
-            fileContent, err := os.ReadFile(file);
-            if err != nil {
-                fmt.Println("Error loading file", err);
-                return;
-            }
-            var person []Person;
-            err = json.Unmarshal(fileContent, &person);
-            if err != nil {
-                fmt.Println("error unmarshaling JSON", err);
-                return;
-            }
-    
-            fmt.Println("tasks from file :");
-            for _, person := range person {
-                fmt.Printf("ID: %d, Name: %s, Task: %s, Date:%s ,Status: %d \n", person.Id, person.FirstName, person.Task,person.Date,  person.Status);
-            }
+            ViewTasks(file);
         case "e" :
-            fmt.Println("exiting app");
+            fmt.Println("exiting app.");
             return;
-
+        case "d": 
+            var deleteId uint;
+            ViewTasks(file);
+            fmt.Println("choose id of task to delete:");
+            fmt.Scanln(&deleteId);
+            DeleteTask(file, deleteId);
+        case "u":
+            var updateId uint;
+            var status uint8;
+            ViewTasks(file);
+            fmt.Println("choose id of task to update");
+            fmt.Scanln(&updateId);
+            fmt.Println("change status to solved(1) or not solved(0)");
+            fmt.Scanln(&status);
+            if !(status == 0 || status == 1) {
+                fmt.Println("invalid status. Type 0 for not solved or 1 for solved tasks");
+            } else {
+                UpdateTask(file, updateId, status);
+            }
         default: 
             fmt.Println("invalid command");
         }
@@ -131,3 +133,91 @@ func main() {
 
 
 }   
+
+
+    // view tasks for specific username 
+    // TODO make it aslo delete or make another func for it 
+    func ViewTasks(filename string) {
+        var name string;
+        var exist bool = false;
+        fmt.Println("your username: ");
+        fmt.Scanln(&name);
+        fileContent, err := os.ReadFile(filename);
+        if err != nil {
+            fmt.Println("Error loading file", err);
+            return;
+        }
+        var person []Person;
+        err = json.Unmarshal(fileContent, &person);
+        if err != nil {
+            fmt.Println("error unmarshaling JSON", err);
+            return;
+        }
+        for _, person := range person {
+            if person.FirstName == name {
+                fmt.Printf("ID: %d, Name: %s, Task: %s, Date:%s ,Status: %d \n", person.Id, person.FirstName, person.Task,person.Date,  person.Status);
+                exist = true;
+            }
+        }
+        if !exist {
+            fmt.Println("user does not have any tasks.");
+            return;
+        }
+    }
+
+    func DeleteTask(filename string, deleteId uint) {
+        fileContent, err := os.ReadFile(filename);
+        if err != nil {
+            fmt.Println("Error loading file", err);
+            return;
+        }
+        var person []Person;
+        err = json.Unmarshal(fileContent, &person);
+        if err != nil {
+            fmt.Println("error unmarshaling JSON", err);
+            return;
+        }
+        for i, row := range person {
+            if row.Id == deleteId {
+                person = append(person[:i], person[i+1:]...)
+                break;
+            }
+        }
+        jsonData , err := json.MarshalIndent(person, "", " ");
+        if err != nil {
+            fmt.Println("error marshaling json", err);
+            return;
+        }
+
+        _ = os.WriteFile(filename, jsonData, os.ModePerm);
+    } 
+    
+    func UpdateTask(filename string, updateId uint, status uint8) {
+        fileContent, err := os.ReadFile(filename);
+        if err != nil {
+            fmt.Println("Error loading file", err);
+            return;
+        }
+        var person []Person;
+        err = json.Unmarshal(fileContent, &person);
+        if err != nil {
+            fmt.Println("error unmarshaling JSON", err);
+            return;
+        }
+        for i, row := range person {
+            if row.Id == updateId {
+                person[i].Status = status;
+                break;
+            }
+        }
+        jsonData , err := json.MarshalIndent(person, "", " ");
+        if err != nil {
+            fmt.Println("error marshaling json", err);
+            return;
+        }
+
+        _ = os.WriteFile(filename, jsonData, os.ModePerm);
+        fmt.Println("update completed on id", updateId);
+    } 
+
+
